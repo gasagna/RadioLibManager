@@ -147,7 +147,7 @@ class RadioLibManager {
                                     has_packet = true;
 
                                     // send the ACK first or execute the callback
-                                    if (packet.header.msg_type == CONFIRMED) {
+                                    if (RADIOLIBMANAGER_MSGTYPE(packet.header.sysflags) == RADIOLIBMANAGER_MSG_CONFIRMED) {
                                         _state = RadioLibManagerState::TRANSMIT;
                                     } else {
                                         _state = RadioLibManagerState::START;
@@ -172,7 +172,7 @@ class RadioLibManager {
                         // make acknowledgment packet and send it
                         Packet_t ackn = make_packet(packet.header.src_address,
                                                    _address,
-                                                   ACKNOWLEDGEMENT,
+                                                   RADIOLIBMANAGER_MSG_ACK,
                                                    packet.header.packet_id);
 
                         // blocking transmit
@@ -222,6 +222,7 @@ class RadioLibManager {
         /// @param dest_address
         /// @param confirmed
         /// @param ack_timeout_ms
+        /// @param userflags
         /// @param rssi
         /// @param snr
         /// @return
@@ -230,14 +231,16 @@ class RadioLibManager {
                       uint8_t to,
                          bool confirmed,
                      uint32_t ack_timeout_ms,
+                      uint8_t userflags,
                          int* rssi = NULL,
                          int* snr = NULL) {
 
             // make packet
             Packet_t pckt = make_packet(to,
                                         _address,
-                                        (confirmed == true) ? CONFIRMED : UNCONFIRMED,
+                                        (confirmed == true) ? RADIOLIBMANAGER_MSG_CONFIRMED : RADIOLIBMANAGER_MSG_UNCONFIRMED,
                                         _this_packet_id,
+                                        userflags,
                                         data,
                                         length);
 
@@ -298,8 +301,8 @@ class RadioLibManager {
                             }
                             // if we received a packet successfully and it's the packet we expect
                             case(RADIOLIB_ERR_NONE): {
-                                if (ackn.header.dest_address  == _address                   &&
-                                    ackn.header.msg_type      == Message_t::ACKNOWLEDGEMENT &&
+                                if (ackn.header.dest_address  == _address         &&
+                                    RADIOLIBMANAGER_MSGTYPE(ackn.header.sysflags) == RADIOLIBMANAGER_MSG_ACK &&
                                     ackn.header.packet_id     == _this_packet_id) {
                                     _state = RadioLibManagerState::DONE;
                                 }
