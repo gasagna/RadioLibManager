@@ -63,7 +63,6 @@ void __set_tx_flag__(void) {
 /*
     The  RadioLibManager class!
 */
-template <class RADIO>
 class RadioLibManager {
     public:
         /// @brief Construct the radio manager
@@ -71,7 +70,7 @@ class RadioLibManager {
         /// @param address [IN] the address of this device, from 0 to 31
         /// @param max_retries [IN] number of times to send a packet without receiving
         ///        an acknowledgment before giving up (defaults to 3)
-        RadioLibManager(RADIO& radio, uint8_t address, int max_retries = 3)
+        RadioLibManager(PhysicalLayer& radio, uint8_t address, int max_retries = 3)
             : _max_retries(max_retries)
             , _address(address)
             , _this_packet_id(0)
@@ -435,7 +434,7 @@ class RadioLibManager {
         uint8_t              _address;                           ///< this device address
         uint8_t              _this_packet_id;                    ///< id of the packet to be sent
         RadioLibManagerState _state;                             ///< internal state
-        RADIO&               _radio;                             ///< the RadioLib radio driver
+        PhysicalLayer&       _radio;                             ///< the RadioLib radio driver
         CircularBuffer<Header, HEADER_CACHE_SIZE> _header_cache; ///< cache for the headers of the last few previously seen packets.
                                                                  ///< it should be smaller than the maximum packet id sent by a node, 
                                                                  // otherwise we would be dropping packets because the packet count 
