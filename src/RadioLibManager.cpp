@@ -301,7 +301,7 @@ int16_t RadioLibManager::_startReceive(uint32_t timeout_ms ) {
 
     // start rx mode – timeouts are given in multiples of 15.625 us
     uint32_t timeout = timeout_ms == 0 ? RADIOLIB_SX126X_RX_TIMEOUT_INF : 1000 * timeout_ms / 15.625;
-    return radio.startReceive(timeout, RADIOLIB_SX126X_IRQ_RX_DEFAULT, RADIOLIB_SX126X_IRQ_RX_DONE);
+    return _radio.startReceive(timeout, RADIOLIB_SX126X_IRQ_RX_DEFAULT, RADIOLIB_SX126X_IRQ_RX_DONE);
 }
 
 int16_t RadioLibManager::_startReceiveWait(Packet_t& packet, uint32_t timeout_ms) {
