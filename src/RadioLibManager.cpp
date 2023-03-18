@@ -269,6 +269,9 @@ void RadioLibManager::_store_packet(Packet_t& packet) {
 }
 
 int16_t RadioLibManager::_receiveWait(Packet_t& packet) {
+    #ifdef DEBUGRADIO
+        Serial.println("IN : _receiveWait");
+    #endif
     // wait for the interrupt to fire
     while (true) {
         if (__rx_flag__ == true) {
@@ -282,6 +285,9 @@ int16_t RadioLibManager::_receiveWait(Packet_t& packet) {
             packet.rssi = _radio.getRSSI();
             packet.snr  = _radio.getSNR();
 
+            #ifdef DEBUGRADIO
+                Serial.println("OUT: _receiveWait");
+            #endif
             // return whatever readData returned
             return retcode;
         }
