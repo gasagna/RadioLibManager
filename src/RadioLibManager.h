@@ -136,7 +136,7 @@ class RadioLibManager {
                         switch (retcode) {
                             // if we have received a packet with CRC errors, stay in RX
                             case(RADIOLIB_ERR_CRC_MISMATCH): {
-                                _state = RadioLibManagerState::RECEIVE;
+                                _state = RadioLibManagerState::START;
                                 break;
                             }
 
@@ -152,6 +152,8 @@ class RadioLibManager {
                                     } else {
                                         _state = RadioLibManagerState::START;
                                     }
+                                } else {
+                                   _state = RadioLibManagerState::START;
                                 }
                                 break;
                             }
@@ -200,7 +202,7 @@ class RadioLibManager {
                         // reset flag
                         has_packet = false;
 
-                        // go to packet listening
+                        // go to packet listening (we have already gone through START)
                         _state = RadioLibManagerState::RECEIVE;
 
                         break;
