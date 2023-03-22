@@ -349,6 +349,8 @@ class RadioLibManager {
                                     RADIOLIBMANAGER_MSGTYPE(ackn.header.sysflags) == RADIOLIBMANAGER_MSG_ACK &&
                                     ackn.header.packet_id     == _this_packet_id) {
                                     _state = RadioLibManagerState::DONE;
+                                } else {
+                                    _state = RadioLibManagerState::RECEIVE;
                                 }
                                 break;
                             }
