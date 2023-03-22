@@ -14,6 +14,7 @@
 
 /// @brief the state of the ::RadioLibManager object
 typedef enum {
+         CAD, ///< the manager is doing channel activity detection
         DONE, ///< manager has finished sending a packet
         IDLE, ///< the manager is idle
        START, ///< the manager is setting up to start receiving
@@ -26,7 +27,8 @@ typedef enum {
 
 // for pretty printing
 #ifdef DEBUGRADIO
-    const char STATEMAP[8][9] = {"DONE",
+    const char STATEMAP[9][9] = {"CAD",
+                                 "DONE",
                                  "IDLE",
                                  "START",
                                  "ERROR",
@@ -69,10 +71,12 @@ class RadioLibManager {
         /// @param radio [IN] a radio object from RadioLib, subclass of PhysicalLayer
         /// @param address [IN] the address of this device, from 0 to 31
         /// @param max_retries [IN] number of times to send a packet without receiving
+        /// @param detect_channel_activity [IN] perform channel activity detection before sending data
         ///        an acknowledgment before giving up (defaults to 3)
-        RadioLibManager(RADIO& radio, uint8_t address, int max_retries = 3) 
+        RadioLibManager(RADIO& radio, uint8_t address, int max_retries = 3, bool detect_channel_activity = true) 
             : _radio(radio) {
                 _max_retries = max_retries;
+                _detect_channel_activity = detect_channel_activity;
                 _address = address;
                 _this_packet_id = 0;
                 _state = RadioLibManagerState::IDLE;
@@ -148,7 +152,7 @@ class RadioLibManager {
 
                                     // send the ACK first or execute the callback
                                     if (RADIOLIBMANAGER_MSGTYPE(packet.header.sysflags) == RADIOLIBMANAGER_MSG_CONFIRMED) {
-                                        _state = RadioLibManagerState::TRANSMIT;
+                                        _state = _detect_channel_activity == true ? RadioLibManagerState::CAD : RadioLibManagerState::TRANSMIT;
                                     } else {
                                         _state = RadioLibManagerState::START;
                                     }
@@ -164,6 +168,29 @@ class RadioLibManager {
                             }
                         }
                         break; // RECEIVE case
+                    }
+
+                    // perform channel activity detection
+                    case RadioLibManagerState::CAD: {
+                        switch (_detectChannelActivity()) {
+                            // wait and repeat
+                            case RADIOLIB_LORA_DETECTED: {
+                                delay(100);
+                                _state = RadioLibManagerState::CAD;
+                                break;
+                            }
+                            // send data
+                            case RADIOLIB_CHANNEL_FREE: {
+                                _state = RadioLibManagerState::TRANSMIT;
+                                break;
+                            }
+                            // assume it's all good
+                            default: {// RADIOLIB_ERR_UNKNOWN or other
+                                _state = RadioLibManagerState::TRANSMIT;
+                                break;
+                            }
+                        } 
+                        break;
                     }
 
                     // send acknowledgment
@@ -241,8 +268,8 @@ class RadioLibManager {
             // initially no error 
             int16_t retcode = RADIOLIB_ERR_NONE;
 
-            // go to TX state
-            _state = RadioLibManagerState::TRANSMIT;
+            // start from CAD or go directly to TRANSMIT
+            _state = _detect_channel_activity == true ? RadioLibManagerState::CAD : RadioLibManagerState::TRANSMIT;
 
             // number of sending attempts 
             uint8_t attempt = 0;
@@ -252,6 +279,29 @@ class RadioLibManager {
                     Serial.print("RadioLibManager state: "); Serial.println(STATEMAP[_state]);
                 #endif
                 switch(_state) {
+                   // perform channel activity detection
+                    case RadioLibManagerState::CAD: {
+                        switch (_detectChannelActivity()) {
+                            // wait and repeat
+                            case RADIOLIB_LORA_DETECTED: {
+                                delay(100);
+                                _state = RadioLibManagerState::CAD;
+                                break;
+                            }
+                            // send data
+                            case RADIOLIB_CHANNEL_FREE: {
+                                _state = RadioLibManagerState::TRANSMIT;
+                                break;
+                            }
+                            // assume it's all good
+                            default: { // RADIOLIB_ERR_UNKNOWN or other
+                                _state = RadioLibManagerState::TRANSMIT;
+                                break;
+                            }
+                        } 
+                        break;
+                    }
+
                     // send packet
                     case RadioLibManagerState::TRANSMIT: {
                         // update attempts
@@ -281,7 +331,7 @@ class RadioLibManager {
                                 if (attempt >= _max_retries) {
                                     _state = RadioLibManagerState::TIMEDOUT;
                                 } else {
-                                    _state = RadioLibManagerState::TRANSMIT;
+                                    _state = _detect_channel_activity == true ? RadioLibManagerState::CAD : RadioLibManagerState::TRANSMIT;
                                 }
                                 break;
                             }
@@ -290,7 +340,7 @@ class RadioLibManager {
                             // will know that it has to drop the packet if it gets sent more
                             // than once
                             case(RADIOLIB_ERR_CRC_MISMATCH): {
-                                _state = RadioLibManagerState::TRANSMIT;
+                                _state = _detect_channel_activity == true ? RadioLibManagerState::CAD : RadioLibManagerState::TRANSMIT;
                                 break;
                             }
                             // if we received a packet successfully and it's the packet we expect
@@ -352,6 +402,14 @@ class RadioLibManager {
             _header_cache.unshift(packet.header);
         }
 
+        /// @brief Detect activity on the channel
+        /// @return the return code from RadioLib's scanChannel function
+        int16_t _detectChannelActivity() {
+            // clear action to avoid false positive when going to rx mode
+            _radio.clearDio1Action();
+            return _radio.scanChannel();
+        }
+
         /// @brief Wait until DIO1 activates and read data.
         /// @param packet [in] location where the packet receivd is stored
         /// @return the return code from RadioLib's readData function
@@ -379,7 +437,7 @@ class RadioLibManager {
                     return retcode;
                 }
             }
-}
+        }
 
         /// @brief Set interrupt service routine to call when DIO1 activates, clear
         /// IRQ flags and start receiving
@@ -435,6 +493,7 @@ class RadioLibManager {
         uint16_t             _max_retries;                       ///< max number of retries for sending a packet
         uint8_t              _address;                           ///< this device address
         uint8_t              _this_packet_id;                    ///< id of the packet to be sent
+        bool                 _detect_channel_activity;
         RadioLibManagerState _state;                             ///< internal state
         RADIO&               _radio;                             ///< the RadioLib radio driver
         CircularBuffer<Header, HEADER_CACHE_SIZE> _header_cache; ///< cache for the headers of the last few previously seen packets.
