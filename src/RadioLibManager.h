@@ -416,9 +416,6 @@ class RadioLibManager {
         /// @param packet [in] location where the packet receivd is stored
         /// @return the return code from RadioLib's readData function
         int16_t _receiveWait(Packet_t& packet) {
-            #ifdef DEBUGRADIO
-                Serial.println("IN : _receiveWait");
-            #endif
             // wait for the interrupt to fire
             while (true) {
                 if (__rx_flag__ == true) {
@@ -432,9 +429,6 @@ class RadioLibManager {
                     packet.rssi = _radio.getRSSI();
                     packet.snr  = _radio.getSNR();
 
-                    #ifdef DEBUGRADIO
-                        Serial.println("OUT: _receiveWait");
-                    #endif
                     // return whatever readData returned
                     return retcode;
                 }
