@@ -70,9 +70,8 @@ class RadioLibManager {
         /// @brief Construct the radio manager
         /// @param radio [IN] a radio object from RadioLib, subclass of PhysicalLayer
         /// @param address [IN] the address of this device, from 0 to 31
-        /// @param max_retries [IN] number of times to send a packet without receiving
+        /// @param max_retries [IN] number of times to send a packet without receiving an acknowledgment before giving up (defaults to 3)
         /// @param detect_channel_activity [IN] perform channel activity detection before sending data
-        ///        an acknowledgment before giving up (defaults to 3)
         RadioLibManager(RADIO& radio, uint8_t address, int max_retries = 3, bool detect_channel_activity = true) 
             : _radio(radio) {
                 _max_retries = max_retries;

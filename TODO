@@ -1,0 +1,8 @@
+27/05/2023 add dup flag to packets, because we need to be able to receive a packet when the node
+restarts and sends a message with id 0 again
+
+- add exponential back off functionality in case the gateway goes down. We will need to
+  have some parameters, like: 
+    - number of failed ack before we start backing off
+    - back off rate
+    - maximum delay time
