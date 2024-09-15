@@ -42,7 +42,6 @@ inline bool operator==(const Header& lhs, const Header& rhs) {
              lhs.src_address == rhs.src_address &&
                 lhs.sysflags == rhs.sysflags &&
                lhs.userflags == rhs.userflags);
-
 }
 
 /// @brief Data structure for packets sent with RadioLibManager. This is
