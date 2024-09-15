@@ -8,7 +8,7 @@
 // the size of the header cache
 #define HEADER_CACHE_SIZE 5
 
-#include "CircularBuffer.h"
+#include "CircularBuffer.hpp"
 #include "RadioLib.h"
 #include "packet.h"
 
